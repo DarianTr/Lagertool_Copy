@@ -9,6 +9,7 @@ import (
 
 func SetupRoutes(r *gin.Engine, dbCon *pg.DB, cfg *config.Config) {
 	h := NewHandler(dbCon, cfg)
+	authHandler := auth.NewAuthHandler(dbCon)
 
 	// Resources
 	r.GET("/organisations", h.GetOrganisations)
@@ -39,6 +40,6 @@ func SetupRoutes(r *gin.Engine, dbCon *pg.DB, cfg *config.Config) {
 	r.POST("/requests/:id/messages", h.PostMessage)
 
 	// Auth
-	r.GET("/auth/eduid/login", auth.LoginHandler)
-	r.GET("/auth/eduid/callback", auth.CallbackHandler)
+	r.GET("/auth/eduid/login", authHandler.LoginHandler)
+	r.GET("/auth/eduid/callback", authHandler.CallbackHandler)
 }
