@@ -15,7 +15,6 @@ import (
 	"github.com/google/uuid"
 	"lagertool.com/main/db_models"
 
-	"github.com/go-redis/redis/v8"
 	"golang.org/x/oauth2"
 )
 
@@ -24,27 +23,11 @@ var (
 	clientSecret = os.Getenv("VSETH_CLIENT_SECRET")
 	redirectURL  = "https://lagertool.ch/auth/callback"
 	issuerURL    = "https://keycloak-fake.vis.ethz.ch/realms/VSETH"
-	rdb          = initRedis()
 
 	oauth2Config *oauth2.Config
 	oidcProvider *oidc.Provider
 	verifier     *oidc.IDTokenVerifier
 )
-
-func initRedis() *redis.Client {
-	fmt.Println("Initializing Redis...")
-
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: os.Getenv("REDIS_PASSWORD"),
-		DB:       0,
-	})
-	if rdb == nil {
-		panic("❌ Error: Redis Could Not Intialize!")
-	}
-	fmt.Println("✅ Redis Initialized Successfully!")
-	return rdb
-}
 
 func init() {
 	oidcProvider, err := oidc.NewProvider(context.Background(), issuerURL)
@@ -75,22 +58,13 @@ func NewAuthHandler(db *pg.DB) *AuthHandler {
 
 // connects to /auth/login
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
-	ctx := context.Background()
 	state := uuid.New().String()
-	rdb.Set(ctx, state, state, 100)
-
 	url := oauth2Config.AuthCodeURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 // connects to /auth/callback
 func (h *AuthHandler) CallbackHandler(c *gin.Context) {
-	ctx := context.Background()
-
-	state := c.Query("state")
-	rdb.Get(ctx, state)
-	rdb.Del(ctx, state)
-
 	code := c.Query("code")
 	if code == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Authorization code missing"})
